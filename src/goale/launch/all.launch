@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="goale" name="vision" type="vision"/>
+  <node pkg="goale" name="sim2" type="listener.py"/>
+</launch>
