@@ -1,3 +1,7 @@
+*~
+devel
+/src/CMakeLists.txt
+
 *.py[cod]
 
 # C extensions
