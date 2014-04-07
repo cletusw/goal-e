@@ -1,15 +1,11 @@
-# Author: Cameron Taylor
-# Last Modified: 7 Apr 2014
-# Given an angle and an x,y coordinate, go to point and then turn.
-
 import sys
 import serial
 import time
 import math
 
-theta = float(sys.argv[1])
-x = float(sys.argv[2])
-y = float(sys.argv[3])
+x = float(sys.argv[1])
+y = float(sys.argv[2])
+#theta = sys.argv[3]
 
 port1 = "/dev/ttyPCH1"
 port2 = "/dev/ttyPCH2"
@@ -151,31 +147,16 @@ def rpsComponentM3(max_rps,x,y):
     rpsM3 = rpsComponentM(max_rps,x3,y3,x,y)
     return rpsM3
 
-# Rotate between -180 and +180 degrees
-def rotate(max_rps,theta):
-    print "Rotating " + str(theta) + " degrees."
-    tune_angle = 0.3;
-    speedM1 = 64
-    speedM2 = 64
-    speedM3 = 64
-    if (theta<0):
-        max_rps = -max_rps
-    for i in range(0,int(tune_angle*theta)):
-        driveM1(speedM1)
-        driveM2(speedM2)
-        driveM3(speedM3)
-        kp_theta = 1
-        speedM1 = speedM1 + kp_theta*(max_rps - readCurrentRpsM1())
-        speedM2 = speedM2 + kp_theta*(max_rps - readCurrentRpsM2())
-        speedM3 = speedM3 + kp_theta*(max_rps - readCurrentRpsM3())
-        if i%10==0:
-            print str(readCurrentRpsM1()) + "\t\t" + str(readCurrentRpsM2()) + "\t\t" + str(readCurrentRpsM3()) 
-    stop()
+def incrementLogarithmically(rpsCurrent,rpsDesired):
+    tune = 0.2
+    if (rpsDesired>rpsCurrent):
+        inc = math.exp(tune*(rpsDesired-rpsCurrent))
+    elif (rpsDesired<rpsCurrent):
+        inc = -math.exp(tune*(rpsCurrent-rpsDesired))
+    return inc
 
 def goToPoint(max_rps,x,y):
-    print "Moving to (x,y)=(" + str(x) + "," + str(y) + ")"
-    tune_distance = 5
-    distance = int(tune_distance*math.sqrt(x*x+y*y))
+    distance = int(math.sqrt(x*x+y*y))
     rpsM1 = rpsComponentM1(max_rps,x,y)
     rpsM2 = rpsComponentM2(max_rps,x,y)
     rpsM3 = rpsComponentM3(max_rps,x,y)
@@ -186,22 +167,13 @@ def goToPoint(max_rps,x,y):
         driveM1(speedM1)
         driveM2(speedM2)
         driveM3(speedM3)
-        kp_xy = 1
-        speedM1 = speedM1 + kp_xy*(rpsM1 - readCurrentRpsM1())
-        speedM2 = speedM2 + kp_xy*(rpsM2 - readCurrentRpsM2())
-        speedM3 = speedM3 + kp_xy*(rpsM3 - readCurrentRpsM3())
-        if i%10==0:
-            print str(readCurrentRpsM1()) + "\t\t" + str(readCurrentRpsM2()) + "\t\t" + str(readCurrentRpsM3())
+        speedM1 = speedM1 + (rpsM1 - readCurrentRpsM1())
+        speedM2 = speedM2 + (rpsM2 - readCurrentRpsM2())
+        speedM3 = speedM3 + (rpsM3 - readCurrentRpsM3())
+        print str(readCurrentRpsM1()) + "\t\t" + str(readCurrentRpsM2()) + "\t\t" + str(readCurrentRpsM3())
     stop()
 
 ################# Implementation #####################
 
 max_rps = 3
-rotate(max_rps,theta)
 goToPoint(max_rps,x,y)
-
-
-
-
-
-

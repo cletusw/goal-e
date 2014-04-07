@@ -1,15 +1,11 @@
-# Author: Cameron Taylor
-# Last Modified: 7 Apr 2014
-# Given an angle and an x,y coordinate, go to point and then turn.
-
 import sys
 import serial
 import time
 import math
 
-theta = float(sys.argv[1])
-x = float(sys.argv[2])
-y = float(sys.argv[3])
+x = float(sys.argv[1])
+y = float(sys.argv[2])
+#theta = sys.argv[3]
 
 port1 = "/dev/ttyPCH1"
 port2 = "/dev/ttyPCH2"
@@ -40,31 +36,24 @@ def serialRead2(read):
         data.append(ser2.read())
     return data
 
-def threshold(speed):
-    if (speed < 0):
-        speed = 0
-    elif (speed > 127):
-        speed = 127
-    return int(speed)
-
 def driveM1(speed):
     address = 0x81
     command = 6
-    dataBytes = threshold(speed)
+    dataBytes = speed
     checksum = (address+command+dataBytes)&0x7F
     serialSend1([address,command,dataBytes,checksum])
 
 def driveM2(speed):
     address = 0x80
     command = 6
-    dataBytes = threshold(speed)
+    dataBytes = speed
     checksum = (address+command+dataBytes)&0x7F
     serialSend2([address,command,dataBytes,checksum])
 
 def driveM3(speed):
     address = 0x81
     command = 7
-    dataBytes = threshold(speed)
+    dataBytes = speed
     checksum = (address+command+dataBytes)&0x7F
     serialSend1([address,command,dataBytes,checksum])
 
@@ -73,10 +62,7 @@ def driveAll(speed):
     driveM2(speed)
     driveM3(speed)
 
-def stop():
-    driveAll(64)
-
-def readCurrentRpsM1():
+def readCurrentSpeedM1():
     address = 0x81
     command = 30
     # Read the current speed from the motor.
@@ -90,9 +76,10 @@ def readCurrentRpsM1():
 		speed = ~(0xffffffff - speed) + 1
     # Calculate the speed in rotations per second (negating to account for wiring).
     rotations_per_second = -float(speed) * 125 / 8192 
+    print 'M1 Speed:\n' + str(rotations_per_second) 
     return rotations_per_second
 
-def readCurrentRpsM2():
+def readCurrentSpeedM2():
     address = 0x80
     command = 30
     # Read the speed information from the motor.
@@ -106,9 +93,10 @@ def readCurrentRpsM2():
 		speed = ~(0xffffffff - speed) + 1
     # Calculate the speed in rotations per second (negating to account for wiring).
     rotations_per_second = -float(speed) * 125 / 8192 
+    print 'M2 Speed:\n' + str(rotations_per_second) 
     return rotations_per_second
 
-def readCurrentRpsM3():
+def readCurrentSpeedM3():
     address = 0x81
     command = 31
     # Read the current speed from the motor.
@@ -122,86 +110,49 @@ def readCurrentRpsM3():
 		speed = ~(0xffffffff - speed) + 1
     # Calculate the speed in rotations per second (negating to account for wiring).
     rotations_per_second = -float(speed) * 125 / 8192 
+    print 'M3 Speed:\n' + str(rotations_per_second) 
     return rotations_per_second
 
-def rpsComponentM(max_rps,xm,ym,x,y):
-    if (x==0 and y==0):
-        rpsM = 0
-    else:
-        x = x/math.sqrt(x*x+y*y)
-        y = y/math.sqrt(x*x+y*y)
-        rpsM = max_rps*(xm*x+ym*y)/math.sqrt(xm*xm+ym*ym)
-    return rpsM
+def speedComponentM(speed,xm,ym,x,y):
+    speed = speed-64
+    x = x/math.sqrt(x*x+y*y)
+    y = y/math.sqrt(x*x+y*y)
+    speedM = speed*(xm*x+ym*y)/math.sqrt(xm*xm+ym*ym)
+    return int(speedM+64)
 
-def rpsComponentM1(max_rps,x,y):
+def speedComponentM1(speed,x,y):
     x1 = -math.sqrt(2)/2
     y1 = -math.sqrt(2)/2
-    rpsM1 = rpsComponentM(max_rps,x1,y1,x,y)
-    return rpsM1
+    speedM1 = speedComponentM(speed,x1,y1,x,y)
+    return speedM1
 
-def rpsComponentM2(max_rps,x,y):
+def speedComponentM2(speed,x,y):
     x2 = 1
     y2 = 0
-    rpsM2 = rpsComponentM(max_rps,x2,y2,x,y)
-    return rpsM2
+    speedM2 = speedComponentM(speed,x2,y2,x,y)
+    return speedM2
 
-def rpsComponentM3(max_rps,x,y):
+def speedComponentM3(speed,x,y):
     x3 = -math.sqrt(2)/2
     y3 = math.sqrt(2)/2
-    rpsM3 = rpsComponentM(max_rps,x3,y3,x,y)
-    return rpsM3
+    speedM3 = speedComponentM(speed,x3,y3,x,y)
+    return speedM3
 
-# Rotate between -180 and +180 degrees
-def rotate(max_rps,theta):
-    print "Rotating " + str(theta) + " degrees."
-    tune_angle = 0.3;
-    speedM1 = 64
-    speedM2 = 64
-    speedM3 = 64
-    if (theta<0):
-        max_rps = -max_rps
-    for i in range(0,int(tune_angle*theta)):
-        driveM1(speedM1)
-        driveM2(speedM2)
-        driveM3(speedM3)
-        kp_theta = 1
-        speedM1 = speedM1 + kp_theta*(max_rps - readCurrentRpsM1())
-        speedM2 = speedM2 + kp_theta*(max_rps - readCurrentRpsM2())
-        speedM3 = speedM3 + kp_theta*(max_rps - readCurrentRpsM3())
-        if i%10==0:
-            print str(readCurrentRpsM1()) + "\t\t" + str(readCurrentRpsM2()) + "\t\t" + str(readCurrentRpsM3()) 
-    stop()
-
-def goToPoint(max_rps,x,y):
-    print "Moving to (x,y)=(" + str(x) + "," + str(y) + ")"
-    tune_distance = 5
-    distance = int(tune_distance*math.sqrt(x*x+y*y))
-    rpsM1 = rpsComponentM1(max_rps,x,y)
-    rpsM2 = rpsComponentM2(max_rps,x,y)
-    rpsM3 = rpsComponentM3(max_rps,x,y)
-    speedM1 = 64
-    speedM2 = 64
-    speedM3 = 64
+def goToPoint(speed,x,y):
+    distance = 50;
     for i in range(0,distance):
-        driveM1(speedM1)
-        driveM2(speedM2)
-        driveM3(speedM3)
-        kp_xy = 1
-        speedM1 = speedM1 + kp_xy*(rpsM1 - readCurrentRpsM1())
-        speedM2 = speedM2 + kp_xy*(rpsM2 - readCurrentRpsM2())
-        speedM3 = speedM3 + kp_xy*(rpsM3 - readCurrentRpsM3())
-        if i%10==0:
-            print str(readCurrentRpsM1()) + "\t\t" + str(readCurrentRpsM2()) + "\t\t" + str(readCurrentRpsM3())
-    stop()
+        driveM1(speedComponentM1(speed,x,y))
+        driveM2(speedComponentM2(speed,x,y))
+        driveM3(speedComponentM3(speed,x,y))
 
 ################# Implementation #####################
 
-max_rps = 3
-rotate(max_rps,theta)
-goToPoint(max_rps,x,y)
+speed = 100
+goToPoint(speed,x,y)
 
-
-
-
-
-
+time.sleep(0.10)
+readCurrentSpeedM1()
+readCurrentSpeedM2()
+readCurrentSpeedM3()
+time.sleep(3)
+driveAll(64)
