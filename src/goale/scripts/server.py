@@ -36,20 +36,18 @@ class Server:
             data = client.recv(self.size)
             if data
                 #commands from referee
-                if data == "start":
-                    os.system("python ~/driveAll.py 50")
-                elif data == "goal":
-                    os.system("python ~/returnToStart.py")
-                elif data == "stop":
+                if data == "0": #all stop
+                    #either call a python script or publish to a topic
                     os.system("python ~/allStop.py")
+                elif data == "1": #start game
+                    os.system("python ~/start.py")
+                elif data == "2": #reset game
+                    os.system("python ~/returnToStart.py")
                 elif "myPosition" in data: #message from other robot
                     self.publishMyPosition(data)
                 elif "runPlay" in data: #message from other robot
                     self.publishPlay(data)
-                print "got it"
-                client.send("hi")
             else:
-                print "closing"
                 client.close()
                 break;
     def publishMyPosition(self, data):
