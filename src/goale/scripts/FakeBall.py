@@ -13,7 +13,7 @@ def talker():
     bearing = bearing + diff
     if (diff > 0 and abs(bearing - maxBearing) < 0.1) or (diff < 0 and abs(bearing + maxBearing) < 0.1):
       diff = -diff
-    msg = RangeBearing(1.2, bearing)
+    msg = RangeBearing(2.0, bearing)
     rospy.loginfo(1)
     pub.publish(msg)
     r.sleep()

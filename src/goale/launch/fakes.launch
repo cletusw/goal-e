@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="goale" name="FakeBall" type="FakeBall.py"/>
+  <node pkg="goale" name="FakeRobot" type="FakeRobot.py"/>
+</launch>
