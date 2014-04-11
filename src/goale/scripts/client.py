@@ -10,17 +10,17 @@ class Client:
         try:
             self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server.connect((self.host, self.port))
-         except socket.error, (value,message):
-             if self.server:
-                 self.server.close()
-             print "Could not open socket: " + message
-             sys.exit(0)
+        except socket.error, (value,message):
+            if self.server:
+                self.server.close()
+            print "Could not open socket: " + message
+            sys.exit(0)
     def run(self):
         rospy.init_node('clientWifi', anonymous=True)
-        rospy.Subscriber("otherRobotPosition", String, sendMessage)   
-        rospy.Subscriber("strategyToSend", String, sendMessage)
+        rospy.Subscriber("referee", String, sendMessage)
         rospy.spin()
     def sendMessage(self, data): 
-        self.server.send(data.data)
-        dataRecv = self.server.recv(self.size)
-        self.server.close()
+        print "data from referee topic: ",data.data
+        #self.server.send(data.data)
+        #dataRecv = self.server.recv(self.size)
+        #self.server.close()

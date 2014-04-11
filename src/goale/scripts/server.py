@@ -21,33 +21,25 @@ class Server:
             print "Could not open socket"
             sys.exit(1)
     def run(self):
-        #spin up ROS
-        self.myPositionFromOtherRobotTopic = rospy.Publisher('myPositionFromOtherRobot', String) 
-        self.refereeTopic = rospy.Publisher('referee', String)
-        self.strategyTopic = rospy.Publisher('strategy', String)
+        #spin up ROS 
         rospy.init_node('wifi', anonymous=True)
+        self.refereeTopic = rospy.Publisher('referee', String)
         self.r = rospy.Rate(10)
         while not rospy.is_shutdown():
-            while True:
-                (client,address) = self.server.accept()
-                self.handleClient(client)
+            (client,address) = self.server.accept()
+            self.handleClient(client)
     def handleClient(self,client):
         while True:
-            data = client.recv(self.size)
-            if data
+             data = client.recv(self.size)
+             if data:
                 #commands from referee
-                if data == "0": #all stop
-                    #either call a python script or publish to a topic
-                    os.system("python ~/allStop.py")
-                elif data == "1": #start game
-                    os.system("python ~/start.py")
-                elif data == "2": #reset game
-                    os.system("python ~/returnToStart.py")
-                elif "myPosition" in data: #message from other robot
-                    self.publishMyPosition(data)
-                elif "runPlay" in data: #message from other robot
-                    self.publishPlay(data)
-            else:
+                if data[0] == "0": #all stop
+                    self.refereeTopic.publish("stop")
+                elif data[0] == "1": #start game
+                    self.refereeTopic.publish("start")
+                elif data[0] == "2": #reset game
+                    self.refereeTopic.publish("reset")
+             else:
                 client.close()
                 break;
     def publishMyPosition(self, data):
@@ -56,9 +48,9 @@ class Server:
        rospy.loginfo(stringToPublish)
        self.myPositionFromOtherRobotTopic.publish(stringToPublish)
        self.r.sleep()
-   def publishPlay(self, data): 
+    def publishPlay(self, data): 
        info = data.split("\s")
        stringToPublish = info[1] + "%s" %rospy.get_time()
        rospy.loginfo(stringToPublish)
        self.strategyTopic.publish(stringToPublish)
-       self.r.sleep()
+       self.sleep()
